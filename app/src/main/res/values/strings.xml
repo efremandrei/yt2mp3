@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">yt2mp3</string>
+    <string name="convert">Convert to MP3</string>
+    <string name="cancel">Cancel</string>
+    <string name="paste">Paste</string>
+    <string name="open_downloads">Open downloads</string>
+    <string name="update_engine">Update engine</string>
+</resources>
