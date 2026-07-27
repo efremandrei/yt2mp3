@@ -8,6 +8,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -43,7 +44,7 @@ public class MainActivity extends Activity {
     private static final int REQUEST_WRITE_STORAGE = 27;
     private static final String PREFS_NAME = "yt2mp3_prefs";
     private static final String PREF_SKIN = "skin";
-    private static final String SKIN_LIGHT = "light";
+    private static final String SKIN_BRIGHT = "bright";
     private static final String SKIN_DARK = "dark";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -90,7 +91,7 @@ public class MainActivity extends Activity {
         applySavedSkin();
 
         infoButton.setOnClickListener(view -> showInfoDialog());
-        lightSkinButton.setOnClickListener(view -> setSkin(SKIN_LIGHT));
+        lightSkinButton.setOnClickListener(view -> setSkin(SKIN_BRIGHT));
         darkSkinButton.setOnClickListener(view -> setSkin(SKIN_DARK));
         pasteButton.setOnClickListener(view -> pasteFromClipboard());
         openDownloadsButton.setOnClickListener(view -> openDownloads());
@@ -105,7 +106,7 @@ public class MainActivity extends Activity {
 
     private void applySavedSkin() {
         SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String selectedSkin = preferences.getString(PREF_SKIN, SKIN_LIGHT);
+        String selectedSkin = preferences.getString(PREF_SKIN, SKIN_BRIGHT);
         skin = SKIN_DARK.equals(selectedSkin) ? SkinPalette.dark() : SkinPalette.light();
         applySkin();
     }
@@ -188,9 +189,30 @@ public class MainActivity extends Activity {
     private void showInfoDialog() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.info_title)
-                .setMessage(R.string.info_message)
+                .setMessage(getString(R.string.info_message, appVersionName(), appVersionCode()))
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private String appVersionName() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return info.versionName == null ? "unknown" : info.versionName;
+        } catch (PackageManager.NameNotFoundException error) {
+            return "unknown";
+        }
+    }
+
+    private long appVersionCode() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return info.getLongVersionCode();
+            }
+            return info.versionCode;
+        } catch (PackageManager.NameNotFoundException error) {
+            return 0L;
+        }
     }
 
     @Override
