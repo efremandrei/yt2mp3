@@ -13,7 +13,7 @@ Rules for every APK release:
 
 Known boundary:
 
-- `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, and `v1.1.4` share the same signer and support in-place updates.
+- `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, and `v1.1.5` share the same signer and support in-place updates.
 - The original `v1.0.0` APK was signed with a different certificate. Android will not install `v1.1.x` over `v1.0.0`; users on `v1.0.0` must uninstall it before installing the current line. Do not repeat this signing break in future releases.
 
 Verification commands:

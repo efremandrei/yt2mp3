@@ -18,7 +18,10 @@
             android:background="@android:color/black"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="20dp">
+            android:paddingLeft="20dp"
+            android:paddingTop="25dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="20dp">
 
             <TextView
                 android:id="@+id/title_text"
