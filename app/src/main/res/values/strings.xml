@@ -6,4 +6,9 @@
     <string name="paste">Paste</string>
     <string name="open_downloads">Open downloads</string>
     <string name="update_engine">Update engine</string>
+    <string name="skin_light">Light</string>
+    <string name="skin_dark">Dark</string>
+    <string name="info">Info</string>
+    <string name="info_title">About yt2mp3</string>
+    <string name="info_message">yt2mp3 converts authorized YouTube URLs into MP3 files using the bundled yt-dlp and FFmpeg engine. Files are saved in Download/yt2mp3. Use it only for content you own or have permission to save.</string>
 </resources>

@@ -2,23 +2,29 @@ package com.andre.yt2mp3;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.view.View;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.yausername.ffmpeg.FFmpeg;
 import com.yausername.youtubedl_android.YoutubeDL;
@@ -35,14 +41,28 @@ import kotlin.Unit;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_WRITE_STORAGE = 27;
+    private static final String PREFS_NAME = "yt2mp3_prefs";
+    private static final String PREF_SKIN = "skin";
+    private static final String SKIN_LIGHT = "light";
+    private static final String SKIN_DARK = "dark";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ScrollView rootScroll;
+    private TextView titleText;
+    private TextView outputLabel;
     private EditText urlInput;
+    private Button infoButton;
+    private Button lightSkinButton;
+    private Button darkSkinButton;
+    private Button pasteButton;
+    private Button openDownloadsButton;
     private Button convertButton;
     private Button cancelButton;
     private Button updateEngineButton;
     private ProgressBar progressBar;
     private TextView statusText;
+    private TextView footerText;
+    private SkinPalette skin;
     private volatile String activeProcessId;
     private volatile boolean initialized;
 
@@ -51,15 +71,29 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        rootScroll = findViewById(R.id.root_scroll);
+        titleText = findViewById(R.id.title_text);
+        outputLabel = findViewById(R.id.output_label);
         urlInput = findViewById(R.id.url_input);
+        infoButton = findViewById(R.id.info_button);
+        lightSkinButton = findViewById(R.id.light_skin_button);
+        darkSkinButton = findViewById(R.id.dark_skin_button);
+        pasteButton = findViewById(R.id.paste_button);
+        openDownloadsButton = findViewById(R.id.open_downloads_button);
         convertButton = findViewById(R.id.convert_button);
         cancelButton = findViewById(R.id.cancel_button);
         updateEngineButton = findViewById(R.id.update_engine_button);
         progressBar = findViewById(R.id.progress_bar);
         statusText = findViewById(R.id.status_text);
+        footerText = findViewById(R.id.footer_text);
 
-        findViewById(R.id.paste_button).setOnClickListener(view -> pasteFromClipboard());
-        findViewById(R.id.open_downloads_button).setOnClickListener(view -> openDownloads());
+        applySavedSkin();
+
+        infoButton.setOnClickListener(view -> showInfoDialog());
+        lightSkinButton.setOnClickListener(view -> setSkin(SKIN_LIGHT));
+        darkSkinButton.setOnClickListener(view -> setSkin(SKIN_DARK));
+        pasteButton.setOnClickListener(view -> pasteFromClipboard());
+        openDownloadsButton.setOnClickListener(view -> openDownloads());
         convertButton.setOnClickListener(view -> startConversion());
         cancelButton.setOnClickListener(view -> cancelActiveConversion());
         updateEngineButton.setOnClickListener(view -> updateEngine());
@@ -67,6 +101,96 @@ public class MainActivity extends Activity {
         readSharedUrl(getIntent());
         maybeRequestLegacyStoragePermission();
         initializeEngine();
+    }
+
+    private void applySavedSkin() {
+        SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String selectedSkin = preferences.getString(PREF_SKIN, SKIN_LIGHT);
+        skin = SKIN_DARK.equals(selectedSkin) ? SkinPalette.dark() : SkinPalette.light();
+        applySkin();
+    }
+
+    private void setSkin(String selectedSkin) {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putString(PREF_SKIN, selectedSkin)
+                .apply();
+        skin = SKIN_DARK.equals(selectedSkin) ? SkinPalette.dark() : SkinPalette.light();
+        applySkin();
+    }
+
+    private void applySkin() {
+        rootScroll.setBackgroundColor(skin.background);
+        titleText.setTextColor(skin.textPrimary);
+        outputLabel.setTextColor(skin.textSecondary);
+        statusText.setTextColor(skin.textPrimary);
+        footerText.setTextColor(skin.textSecondary);
+
+        urlInput.setTextColor(skin.textPrimary);
+        urlInput.setHintTextColor(skin.textSecondary);
+        urlInput.setBackground(rounded(skin.surface, skin.border, 8));
+
+        styleSecondaryButton(infoButton);
+        styleSecondaryButton(pasteButton);
+        styleSecondaryButton(openDownloadsButton);
+        styleSecondaryButton(cancelButton);
+        cancelButton.setTextColor(skin.danger);
+        styleSecondaryButton(updateEngineButton);
+        stylePrimaryButton(convertButton);
+
+        styleSkinButton(lightSkinButton, !skin.dark);
+        styleSkinButton(darkSkinButton, skin.dark);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            progressBar.setProgressTintList(ColorStateList.valueOf(skin.accent));
+            progressBar.setProgressBackgroundTintList(ColorStateList.valueOf(skin.border));
+        }
+
+        Window window = getWindow();
+        window.setStatusBarColor(skin.background);
+        window.setNavigationBarColor(skin.background);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.getDecorView().setSystemUiVisibility(skin.dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
+    }
+
+    private void stylePrimaryButton(Button button) {
+        button.setBackground(rounded(skin.accent, skin.accentPressed, 8));
+        button.setTextColor(Color.WHITE);
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+    }
+
+    private void styleSecondaryButton(Button button) {
+        button.setBackground(rounded(skin.surface, skin.border, 8));
+        button.setTextColor(skin.textPrimary);
+        button.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
+    }
+
+    private void styleSkinButton(Button button, boolean selected) {
+        if (selected) {
+            button.setBackground(rounded(skin.accent, skin.accentPressed, 8));
+            button.setTextColor(Color.WHITE);
+            button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        } else {
+            styleSecondaryButton(button);
+        }
+    }
+
+    private static GradientDrawable rounded(int fill, int stroke, int radiusDp) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setColor(fill);
+        drawable.setStroke(2, stroke);
+        drawable.setCornerRadius(radiusDp * 3f);
+        return drawable;
+    }
+
+    private void showInfoDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.info_title)
+                .setMessage(R.string.info_message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     @Override
@@ -287,5 +411,64 @@ public class MainActivity extends Activity {
 
     private static final class DownloadManagerCompat {
         static final String DOWNLOADS_ACTION = "android.intent.action.VIEW_DOWNLOADS";
+    }
+
+    private static final class SkinPalette {
+        final boolean dark;
+        final int background;
+        final int surface;
+        final int textPrimary;
+        final int textSecondary;
+        final int accent;
+        final int accentPressed;
+        final int danger;
+        final int border;
+
+        private SkinPalette(
+                boolean dark,
+                int background,
+                int surface,
+                int textPrimary,
+                int textSecondary,
+                int accent,
+                int accentPressed,
+                int danger,
+                int border) {
+            this.dark = dark;
+            this.background = background;
+            this.surface = surface;
+            this.textPrimary = textPrimary;
+            this.textSecondary = textSecondary;
+            this.accent = accent;
+            this.accentPressed = accentPressed;
+            this.danger = danger;
+            this.border = border;
+        }
+
+        static SkinPalette light() {
+            return new SkinPalette(
+                    false,
+                    Color.rgb(247, 248, 250),
+                    Color.WHITE,
+                    Color.rgb(23, 26, 31),
+                    Color.rgb(86, 94, 108),
+                    Color.rgb(14, 124, 102),
+                    Color.rgb(10, 94, 77),
+                    Color.rgb(180, 35, 24),
+                    Color.rgb(216, 222, 232));
+        }
+
+        static SkinPalette dark() {
+            return new SkinPalette(
+                    true,
+                    Color.rgb(12, 18, 22),
+                    Color.rgb(25, 34, 39),
+                    Color.rgb(239, 246, 243),
+                    Color.rgb(164, 178, 177),
+                    Color.rgb(34, 199, 169),
+                    Color.rgb(24, 161, 138),
+                    Color.rgb(255, 138, 128),
+                    Color.rgb(64, 78, 84));
+        }
     }
 }

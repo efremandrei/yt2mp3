@@ -7,6 +7,11 @@ val yt2mp3VersionName = providers.gradleProperty("yt2mp3VersionName").get()
 
 tasks.register<Copy>("packageDebugApks") {
     dependsOn(":app:assembleDebug")
+    doFirst {
+        delete(fileTree("artifacts") {
+            include("*.apk")
+        })
+    }
     from("app/build/outputs/apk/debug")
     include("*.apk")
     into("artifacts")
