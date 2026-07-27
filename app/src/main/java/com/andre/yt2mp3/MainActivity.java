@@ -23,6 +23,7 @@ import android.text.method.LinkMovementMethod;
 import android.text.util.Linkify;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private ScrollView rootScroll;
     private LinearLayout topBar;
+    private LinearLayout contentBody;
     private TextView titleText;
     private TextView outputLabel;
     private EditText urlInput;
@@ -79,6 +81,7 @@ public class MainActivity extends Activity {
 
         rootScroll = findViewById(R.id.root_scroll);
         topBar = findViewById(R.id.top_bar);
+        contentBody = findViewById(R.id.content_body);
         titleText = findViewById(R.id.title_text);
         outputLabel = findViewById(R.id.output_label);
         urlInput = findViewById(R.id.url_input);
@@ -127,8 +130,9 @@ public class MainActivity extends Activity {
     }
 
     private void applySkin() {
-        rootScroll.setBackgroundColor(skin.background);
+        rootScroll.setBackgroundColor(Color.BLACK);
         topBar.setBackgroundColor(Color.BLACK);
+        contentBody.setBackgroundColor(skin.background);
         titleText.setTextColor(Color.WHITE);
         outputLabel.setTextColor(skin.textSecondary);
         statusText.setTextColor(skin.textPrimary);
@@ -157,6 +161,14 @@ public class MainActivity extends Activity {
         Window window = getWindow();
         window.setStatusBarColor(Color.BLACK);
         window.setNavigationBarColor(skin.background);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.setStatusBarContrastEnforced(false);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && window.getInsetsController() != null) {
+            window.getInsetsController().setSystemBarsAppearance(
+                    0,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             window.getDecorView().setSystemUiVisibility(0);
         }
