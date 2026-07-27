@@ -18,11 +18,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.view.View;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -49,6 +53,7 @@ public class MainActivity extends Activity {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private ScrollView rootScroll;
+    private LinearLayout topBar;
     private TextView titleText;
     private TextView outputLabel;
     private EditText urlInput;
@@ -73,6 +78,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         rootScroll = findViewById(R.id.root_scroll);
+        topBar = findViewById(R.id.top_bar);
         titleText = findViewById(R.id.title_text);
         outputLabel = findViewById(R.id.output_label);
         urlInput = findViewById(R.id.url_input);
@@ -122,7 +128,8 @@ public class MainActivity extends Activity {
 
     private void applySkin() {
         rootScroll.setBackgroundColor(skin.background);
-        titleText.setTextColor(skin.textPrimary);
+        topBar.setBackgroundColor(Color.BLACK);
+        titleText.setTextColor(Color.WHITE);
         outputLabel.setTextColor(skin.textSecondary);
         statusText.setTextColor(skin.textPrimary);
         footerText.setTextColor(skin.textSecondary);
@@ -131,7 +138,7 @@ public class MainActivity extends Activity {
         urlInput.setHintTextColor(skin.textSecondary);
         urlInput.setBackground(rounded(skin.surface, skin.border, 8));
 
-        styleSecondaryButton(infoButton);
+        styleTopBarButton(infoButton, false);
         styleSecondaryButton(pasteButton);
         styleSecondaryButton(openDownloadsButton);
         styleSecondaryButton(cancelButton);
@@ -148,10 +155,10 @@ public class MainActivity extends Activity {
         }
 
         Window window = getWindow();
-        window.setStatusBarColor(skin.background);
+        window.setStatusBarColor(Color.BLACK);
         window.setNavigationBarColor(skin.background);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.getDecorView().setSystemUiVisibility(skin.dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            window.getDecorView().setSystemUiVisibility(0);
         }
     }
 
@@ -173,8 +180,15 @@ public class MainActivity extends Activity {
             button.setTextColor(Color.WHITE);
             button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         } else {
-            styleSecondaryButton(button);
+            styleTopBarButton(button, false);
         }
+    }
+
+    private void styleTopBarButton(Button button, boolean selected) {
+        button.setBackground(rounded(selected ? skin.accent : Color.BLACK,
+                selected ? skin.accentPressed : Color.rgb(104, 112, 122), 8));
+        button.setTextColor(Color.WHITE);
+        button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
     private static GradientDrawable rounded(int fill, int stroke, int radiusDp) {
@@ -187,11 +201,20 @@ public class MainActivity extends Activity {
     }
 
     private void showInfoDialog() {
-        new AlertDialog.Builder(this)
+        String message = getString(R.string.info_message, appVersionName(), appVersionCode());
+        SpannableString linkedMessage = new SpannableString(message);
+        Linkify.addLinks(linkedMessage, Linkify.EMAIL_ADDRESSES | Linkify.WEB_URLS);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.info_title)
-                .setMessage(getString(R.string.info_message, appVersionName(), appVersionCode()))
+                .setMessage(linkedMessage)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+        TextView messageView = dialog.findViewById(android.R.id.message);
+        if (messageView != null) {
+            messageView.setMovementMethod(LinkMovementMethod.getInstance());
+            messageView.setLinksClickable(true);
+        }
     }
 
     private String appVersionName() {

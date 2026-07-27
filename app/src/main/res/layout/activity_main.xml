@@ -13,10 +13,13 @@
         android:padding="20dp">
 
         <LinearLayout
+            android:id="@+id/top_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@android:color/black"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="10dp">
 
             <TextView
                 android:id="@+id/title_text"
@@ -24,7 +27,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="yt2mp3"
-                android:textColor="@color/text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="30sp"
                 android:textStyle="bold" />
 
@@ -36,7 +39,7 @@
                 android:contentDescription="@string/skin_light_description"
                 android:text="@string/skin_light"
                 android:textAllCaps="false"
-                android:textColor="@color/text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="20sp" />
 
             <Space
@@ -51,7 +54,7 @@
                 android:contentDescription="@string/skin_dark_description"
                 android:text="@string/skin_dark"
                 android:textAllCaps="false"
-                android:textColor="@color/text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="20sp" />
 
             <Space
@@ -65,7 +68,7 @@
                 android:background="@drawable/button_outline"
                 android:text="@string/info"
                 android:textAllCaps="false"
-                android:textColor="@color/text_primary" />
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <TextView
