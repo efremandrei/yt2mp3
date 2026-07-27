@@ -115,7 +115,7 @@ public class MainActivity extends Activity {
 
     private void applySavedSkin() {
         SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String selectedSkin = preferences.getString(PREF_SKIN, SKIN_BRIGHT);
+        String selectedSkin = preferences.getString(PREF_SKIN, SKIN_DARK);
         skin = SKIN_DARK.equals(selectedSkin) ? SkinPalette.dark() : SkinPalette.light();
         applySkin();
     }
