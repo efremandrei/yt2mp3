@@ -28,6 +28,14 @@ right to save.
 
 The packaged APKs are written to `artifacts/`.
 
+## Updates
+
+APK releases must support in-place update over the previous version. Keep
+`applicationId` as `com.andre.yt2mp3`, keep the same signing certificate for the
+current release line, and increment `yt2mp3VersionCode`/`yt2mp3VersionName`
+before publishing. See `UPDATES.md` for the current signer fingerprint and the
+known `v1.0.0` signing boundary.
+
 ## Notes
 
 The app uses `io.github.junkfood02.youtubedl-android` version `0.18.1`,
