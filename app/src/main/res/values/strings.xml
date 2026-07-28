@@ -12,8 +12,8 @@
     <string name="skin_dark_description">Dark skin</string>
     <string name="info">About</string>
     <string name="info_title">About yt2mp3</string>
-    <string name="info_message">Developer name: Andrei Efremuahkin
+    <string name="info_message">Developer: Andrei Efremushkin
 Email: andrei.efr@gmail.com
-Github repo URL: https://github.com/efremandrei/yt2mp3
-Version/build: %1$s/%2$d</string>
+GitHub: https://github.com/efremandrei/yt2mp3
+Version: %1$s/%2$d</string>
 </resources>
