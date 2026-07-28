@@ -138,9 +138,9 @@ public class MainActivity extends Activity {
         statusText.setTextColor(skin.textPrimary);
         footerText.setTextColor(skin.textSecondary);
 
-        urlInput.setTextColor(skin.textPrimary);
-        urlInput.setHintTextColor(skin.textSecondary);
-        urlInput.setBackground(rounded(skin.surface, skin.border, 8));
+        urlInput.setTextColor(Color.rgb(23, 26, 31));
+        urlInput.setHintTextColor(Color.rgb(86, 94, 108));
+        urlInput.setBackground(rounded(Color.WHITE, Color.rgb(216, 222, 232), 8));
 
         styleTopBarButton(infoButton, false);
         styleSecondaryButton(pasteButton);
