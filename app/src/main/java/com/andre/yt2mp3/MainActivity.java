@@ -38,6 +38,7 @@ import com.yausername.youtubedl_android.YoutubeDLException;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -265,18 +266,23 @@ public class MainActivity extends Activity {
     }
 
     private void initializeEngine() {
+        File outputDir = outputDirectory();
+        appendLog(outputDir, "App started. Version " + appVersionName() + "/" + appVersionCode());
         setStatus("Preparing converter engine...");
+        appendLog(outputDir, "Preparing converter engine.");
         setBusy(true);
         executor.execute(() -> {
             try {
                 YoutubeDL.getInstance().init(getApplicationContext());
                 FFmpeg.getInstance().init(getApplicationContext());
+                appendLog(outputDir, "Converter engine ready.");
                 initialized = true;
                 runOnUiThread(() -> {
                     setBusy(false);
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });
             } catch (YoutubeDLException error) {
+                appendLog(outputDir, "Engine initialization failed: " + compactError(error));
                 runOnUiThread(() -> {
                     setBusy(false);
                     setStatus("Engine initialization failed: " + compactError(error));
@@ -288,17 +294,18 @@ public class MainActivity extends Activity {
     private void startConversion() {
         String url = urlInput.getText().toString().trim();
         if (!YoutubeUrl.isSupported(url)) {
+            appendLog(outputDirectory(), "Rejected unsupported URL.");
             setStatus("Enter a valid youtube.com or youtu.be URL.");
             return;
         }
         if (!initialized) {
+            appendLog(outputDirectory(), "Conversion requested while engine was still preparing.");
             setStatus("Converter engine is still preparing.");
             return;
         }
 
         hideKeyboard();
-        File outputDir = OutputTemplate.outputDirectory(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        File outputDir = outputDirectory();
         if (!outputDir.exists() && !outputDir.mkdirs()) {
             setStatus("Could not create " + outputDir.getAbsolutePath());
             return;
@@ -309,6 +316,7 @@ public class MainActivity extends Activity {
         progressBar.setProgress(0);
         setBusy(true);
         setStatus("Starting download...");
+        appendLog(outputDir, "Starting conversion: " + url);
 
         executor.execute(() -> {
             try {
@@ -323,10 +331,12 @@ public class MainActivity extends Activity {
                 request.addOption("-o", OutputTemplate.mp3Template(outputDir));
 
                 YoutubeDL.getInstance().execute(request, processId, true, (progress, etaInSeconds, line) -> {
+                    appendProgressLog(outputDir, progress, etaInSeconds, line);
                     runOnUiThread(() -> showProgress(progress, etaInSeconds, line));
                     return Unit.INSTANCE;
                 });
 
+                appendLog(outputDir, "Conversion done. Saved MP3 in " + outputDir.getAbsolutePath());
                 runOnUiThread(() -> {
                     activeProcessId = null;
                     progressBar.setProgress(100);
@@ -334,6 +344,7 @@ public class MainActivity extends Activity {
                     setStatus("Done. Saved MP3 in " + outputDir.getAbsolutePath());
                 });
             } catch (Exception error) {
+                appendLog(outputDir, "Conversion failed: " + compactError(error));
                 runOnUiThread(() -> {
                     activeProcessId = null;
                     setBusy(false);
@@ -344,16 +355,22 @@ public class MainActivity extends Activity {
     }
 
     private void updateEngine() {
+        File outputDir = outputDirectory();
         if (!initialized) {
+            appendLog(outputDir, "Engine update requested while engine was still preparing.");
             setStatus("Converter engine is still preparing.");
             return;
         }
         setBusy(true);
         setStatus("Checking for yt-dlp updates...");
+        appendLog(outputDir, "Checking for yt-dlp updates.");
         executor.execute(() -> {
             try {
                 YoutubeDL.UpdateStatus status = YoutubeDL.getInstance().updateYoutubeDL(
                         getApplicationContext(), YoutubeDL.UpdateChannel._STABLE);
+                appendLog(outputDir, status == YoutubeDL.UpdateStatus.DONE
+                        ? "Engine updated."
+                        : "Engine is already up to date.");
                 runOnUiThread(() -> {
                     setBusy(false);
                     setStatus(status == YoutubeDL.UpdateStatus.DONE
@@ -361,6 +378,7 @@ public class MainActivity extends Activity {
                             : "Engine is already up to date.");
                 });
             } catch (Exception error) {
+                appendLog(outputDir, "Engine update failed: " + compactError(error));
                 runOnUiThread(() -> {
                     setBusy(false);
                     setStatus("Engine update failed: " + compactError(error));
@@ -376,6 +394,7 @@ public class MainActivity extends Activity {
             activeProcessId = null;
             setBusy(false);
             setStatus("Canceled.");
+            appendLog(outputDirectory(), "Canceled active conversion.");
         }
     }
 
@@ -443,6 +462,30 @@ public class MainActivity extends Activity {
 
     private void setStatus(String message) {
         statusText.setText(message);
+    }
+
+    private File outputDirectory() {
+        return OutputTemplate.outputDirectory(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+    }
+
+    private void appendProgressLog(File outputDir, float progress, long etaInSeconds, String line) {
+        if (line != null && !line.trim().isEmpty()) {
+            appendLog(outputDir, line.trim());
+            return;
+        }
+        if (progress > 0f) {
+            String eta = etaInSeconds > 0 ? " ETA " + etaInSeconds + "s" : "";
+            appendLog(outputDir, String.format(Locale.US, "%.1f%%%s", progress, eta));
+        }
+    }
+
+    private void appendLog(File outputDir, String message) {
+        try {
+            RollingLog.append(outputDir, message);
+        } catch (IOException ignored) {
+            // Logging must not block conversion or UI actions.
+        }
     }
 
     private void hideKeyboard() {
