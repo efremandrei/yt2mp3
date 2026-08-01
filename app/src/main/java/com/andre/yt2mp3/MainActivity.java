@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppUpdateChecker.checkDaily(this);
         setContentView(R.layout.activity_main);
 
         rootScroll = findViewById(R.id.root_scroll);
@@ -221,6 +222,7 @@ public class MainActivity extends Activity {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.info_title)
                 .setMessage(linkedMessage)
+                .setNeutralButton("Check for updates", (dialogInterface, which) -> AppUpdateChecker.checkNow(this))
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
         TextView messageView = dialog.findViewById(android.R.id.message);
