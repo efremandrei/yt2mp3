@@ -31,9 +31,7 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.yausername.ffmpeg.FFmpeg;
 import com.yausername.youtubedl_android.YoutubeDL;
-import com.yausername.youtubedl_android.YoutubeDLException;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 
 import java.io.File;
@@ -279,15 +277,14 @@ public class MainActivity extends Activity {
         setBusy(true);
         executor.execute(() -> {
             try {
-                YoutubeDL.getInstance().init(getApplicationContext());
-                FFmpeg.getInstance().init(getApplicationContext());
-                appendLog(outputDir, "Converter engine ready.");
+                String engineVersion = EngineRuntime.initialize(getApplicationContext());
+                appendLog(outputDir, "Converter engine ready. Runtime verified: yt-dlp " + engineVersion);
                 initialized = true;
                 runOnUiThread(() -> {
                     setBusy(false);
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });
-            } catch (YoutubeDLException error) {
+            } catch (Exception error) {
                 appendLog(outputDir, "Engine initialization failed: " + fullError(error));
                 runOnUiThread(() -> {
                     setBusy(false);

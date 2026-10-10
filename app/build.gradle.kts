@@ -17,7 +17,7 @@ android {
         versionCode = yt2mp3VersionCode
         versionName = yt2mp3VersionName
 
-        testInstrumentationRunner = "android.test.InstrumentationTestRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     }
 
@@ -25,7 +25,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a")
+            include(providers.gradleProperty("yt2mp3Abi").getOrElse("arm64-v8a"))
             isUniversalApk = false
         }
     }
@@ -70,6 +70,10 @@ android {
 dependencies {
     implementation("io.github.junkfood02.youtubedl-android:library:$youtubedlAndroidVersion")
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:$youtubedlAndroidVersion")
+    // Match the downloader's ZIP implementation to preserve Unix runtime symlinks.
+    implementation("org.apache.commons:commons-compress:1.12")
 
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

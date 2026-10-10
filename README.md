@@ -20,6 +20,8 @@ right to save.
 - Convert in private temporary storage, then publish the finished MP3 through MediaStore on Android 10+.
 - Copy the complete conversion error, including app, Android, and engine versions.
 - Cancel the active conversion.
+- Repair missing or incomplete cached Python/FFmpeg runtime files at startup.
+- Verify that Python can execute yt-dlp before showing the converter as ready.
 - Update the bundled `yt-dlp` engine from the app when extractors need refresh.
 - ABI split debug APKs for smaller GitHub artifacts.
 
@@ -30,6 +32,20 @@ right to save.
 ```
 
 The packaged APKs are written to `artifacts/`.
+
+Runtime recovery regression test (on a connected x86_64 emulator):
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest -Pyt2mp3Abi=x86_64
+```
+
+The test reproduces the missing `libpython3.12.so.1.0` linker error and verifies
+automatic repair followed by successful yt-dlp execution. Published APKs still
+default to Samsung-compatible `arm64-v8a`.
+
+GitHub Actions verifies builds and uploads CI artifacts. Public releases are
+signed locally with the established certificate; CI-generated debug keys are
+not used for public updates.
 
 ## Updates
 
