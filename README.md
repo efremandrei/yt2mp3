@@ -16,6 +16,9 @@ right to save.
 - Paste or share a YouTube URL into the app.
 - Save MP3 files into `Download/yt2mp3`.
 - Show progress and ETA while `yt-dlp` runs.
+- Refresh the downloader engine before conversion once per day.
+- Convert in private temporary storage, then publish the finished MP3 through MediaStore on Android 10+.
+- Copy the complete conversion error, including app, Android, and engine versions.
 - Cancel the active conversion.
 - Update the bundled `yt-dlp` engine from the app when extractors need refresh.
 - ABI split debug APKs for smaller GitHub artifacts.
@@ -39,5 +42,7 @@ known `v1.0.0` signing boundary.
 ## Notes
 
 The app uses `io.github.junkfood02.youtubedl-android` version `0.18.1`,
-including its FFmpeg module. YouTube extraction can change over time; use the
+including its FFmpeg module and bundled QuickJS runtime. The app enables the official yt-dlp EJS components for YouTube JavaScript challenges. YouTube extraction can change over time; use the
 in-app engine update button if a URL that should be downloadable starts failing.
+
+Conversion logs are kept in app-private storage. Temporary downloads and partial files are removed after each job. Only a completed, nonempty MP3 is published to `Download/yt2mp3`.

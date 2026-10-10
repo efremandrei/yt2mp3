@@ -16,7 +16,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.method.LinkMovementMethod;
@@ -50,6 +49,8 @@ public class MainActivity extends Activity {
     private static final int REQUEST_WRITE_STORAGE = 27;
     private static final String PREFS_NAME = "yt2mp3_prefs";
     private static final String PREF_SKIN = "skin";
+    private static final String PREF_ENGINE_CHECK = "engine_check";
+    private static final long ENGINE_CHECK_INTERVAL = 24L * 60 * 60 * 1000;
     private static final String SKIN_BRIGHT = "bright";
     private static final String SKIN_DARK = "dark";
 
@@ -74,6 +75,8 @@ public class MainActivity extends Activity {
     private SkinPalette skin;
     private volatile String activeProcessId;
     private volatile boolean initialized;
+    private volatile boolean cancelRequested;
+    private volatile boolean busy;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +102,7 @@ public class MainActivity extends Activity {
         statusText = findViewById(R.id.status_text);
         footerText = findViewById(R.id.footer_text);
 
+        statusText.setTextIsSelectable(true);
         applySavedSkin();
 
         infoButton.setOnClickListener(view -> showInfoDialog());
@@ -284,10 +288,11 @@ public class MainActivity extends Activity {
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });
             } catch (YoutubeDLException error) {
-                appendLog(outputDir, "Engine initialization failed: " + compactError(error));
+                appendLog(outputDir, "Engine initialization failed: " + fullError(error));
                 runOnUiThread(() -> {
                     setBusy(false);
-                    setStatus("Engine initialization failed: " + compactError(error));
+                    setStatus("Engine initialization failed: " + fullError(error));
+                    showConversionError(fullError(error));
                 });
             }
         });
@@ -307,53 +312,120 @@ public class MainActivity extends Activity {
         }
 
         hideKeyboard();
-        File outputDir = outputDirectory();
-        if (!outputDir.exists() && !outputDir.mkdirs()) {
-            setStatus("Could not create " + outputDir.getAbsolutePath());
+        if (busy) return;
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
+                && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            maybeRequestLegacyStoragePermission();
+            setStatus("Allow storage access, then tap Convert again.");
             return;
         }
+        File outputDir = outputDirectory();
 
         String processId = "yt2mp3-" + UUID.randomUUID();
         activeProcessId = processId;
+        cancelRequested = false;
         progressBar.setProgress(0);
         setBusy(true);
         setStatus("Starting download...");
         appendLog(outputDir, "Starting conversion: " + url);
 
         executor.execute(() -> {
+            File jobDirectory = new File(getCacheDir(), processId);
             try {
+                if (!jobDirectory.mkdirs()) throw new IOException("Could not create conversion workspace.");
+                refreshEngineIfDue(outputDir);
+                if (cancelRequested) throw new YoutubeDL.CanceledException();
                 YoutubeDLRequest request = new YoutubeDLRequest(url);
                 request.addOption("--no-playlist");
+                request.addOption("--format", "bestaudio/best");
+                request.addOption("--socket-timeout", "30");
+                request.addOption("--retries", "3");
+                request.addOption("--fragment-retries", "3");
+                request.addOption("--remote-components", "ejs:github");
                 request.addOption("--extract-audio");
                 request.addOption("--audio-format", "mp3");
                 request.addOption("--audio-quality", "0");
                 request.addOption("--newline");
                 request.addOption("--restrict-filenames");
-                request.addOption("--paths", outputDir.getAbsolutePath());
-                request.addOption("-o", OutputTemplate.mp3Template(outputDir));
+                request.addOption("--paths", jobDirectory.getAbsolutePath());
+                request.addOption("-o", OutputTemplate.mp3Template(jobDirectory));
 
-                YoutubeDL.getInstance().execute(request, processId, true, (progress, etaInSeconds, line) -> {
+                // YoutubeDLException is built from stderr. Merging it into stdout
+                // discards the failure details and leaves an empty exception.
+                YoutubeDL.getInstance().execute(request, processId, false, (progress, etaInSeconds, line) -> {
                     appendProgressLog(outputDir, progress, etaInSeconds, line);
-                    runOnUiThread(() -> showProgress(progress, etaInSeconds, line));
+                    if (cancelRequested) {
+                        new Thread(() -> YoutubeDL.getInstance().destroyProcessById(processId)).start();
+                    }
+                    runOnUiThread(() -> {
+                        if (!cancelRequested) showProgress(progress, etaInSeconds, line);
+                    });
                     return Unit.INSTANCE;
                 });
 
-                appendLog(outputDir, "Conversion done. Saved MP3 in " + outputDir.getAbsolutePath());
+                if (cancelRequested) throw new YoutubeDL.CanceledException();
+                File completed = ConversionFiles.completedMp3(jobDirectory);
+                // Saving is atomic from the user's perspective; cancellation ends here.
+                runOnUiThread(() -> {
+                    cancelButton.setEnabled(false);
+                    setStatus("Saving MP3...");
+                });
+                String savedPath = Mp3Publisher.publish(getApplicationContext(), completed);
+                appendLog(outputDir, "Conversion done. Saved " + savedPath);
                 runOnUiThread(() -> {
                     activeProcessId = null;
                     progressBar.setProgress(100);
                     setBusy(false);
-                    setStatus("Done. Saved MP3 in " + outputDir.getAbsolutePath());
+                    setStatus("Done. Saved " + savedPath);
                 });
             } catch (Exception error) {
-                appendLog(outputDir, "Conversion failed: " + compactError(error));
+                boolean canceled = cancelRequested || error instanceof YoutubeDL.CanceledException
+                        || error instanceof InterruptedException;
+                String details = fullError(error);
+                appendLog(outputDir, canceled ? "Conversion canceled." : "Conversion failed: " + details);
                 runOnUiThread(() -> {
                     activeProcessId = null;
                     setBusy(false);
-                    setStatus("Conversion failed: " + compactError(error));
+                    setStatus(canceled ? "Canceled." : "Conversion failed: " + details);
+                    if (!canceled && !isFinishing() && !isDestroyed()) showConversionError(details);
                 });
+            } finally {
+                ConversionFiles.cleanUp(jobDirectory);
             }
         });
+    }
+
+    private void refreshEngineIfDue(File logDir) {
+        long lastCheck = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getLong(PREF_ENGINE_CHECK, 0L);
+        if (System.currentTimeMillis() - lastCheck < ENGINE_CHECK_INTERVAL) return;
+        runOnUiThread(() -> setStatus("Updating YouTube converter..."));
+        try {
+            YoutubeDL.getInstance().updateYoutubeDL(getApplicationContext(), YoutubeDL.UpdateChannel._STABLE);
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putLong(PREF_ENGINE_CHECK, System.currentTimeMillis()).apply();
+            appendLog(logDir, "Engine version: " + YoutubeDL.getInstance().versionName(getApplicationContext()));
+        } catch (Exception error) {
+            appendLog(logDir, "Engine update unavailable; using installed version: " + fullError(error));
+        }
+    }
+
+    private void showConversionError(String details) {
+        new AlertDialog.Builder(this).setTitle("Conversion failed")
+                .setMessage(details)
+                .setNeutralButton("Copy error", (dialog, which) -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("yt2mp3 error",
+                            "yt2mp3 " + appVersionName() + "/" + appVersionCode()
+                            + "\nAndroid " + Build.VERSION.RELEASE
+                            + "\nEngine " + YoutubeDL.getInstance().versionName(getApplicationContext())
+                            + "\n" + details));
+                }).setPositiveButton(android.R.string.ok, null).show();
+    }
+
+    private static String fullError(Throwable error) {
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty() ? error.getClass().getSimpleName() : message.trim();
     }
 
     private void updateEngine() {
@@ -370,6 +442,8 @@ public class MainActivity extends Activity {
             try {
                 YoutubeDL.UpdateStatus status = YoutubeDL.getInstance().updateYoutubeDL(
                         getApplicationContext(), YoutubeDL.UpdateChannel._STABLE);
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putLong(PREF_ENGINE_CHECK, System.currentTimeMillis()).apply();
                 appendLog(outputDir, status == YoutubeDL.UpdateStatus.DONE
                         ? "Engine updated."
                         : "Engine is already up to date.");
@@ -392,10 +466,10 @@ public class MainActivity extends Activity {
     private void cancelActiveConversion() {
         String processId = activeProcessId;
         if (processId != null) {
+            cancelRequested = true;
             YoutubeDL.getInstance().destroyProcessById(processId);
-            activeProcessId = null;
-            setBusy(false);
-            setStatus("Canceled.");
+            cancelButton.setEnabled(false);
+            setStatus("Canceling...");
             appendLog(outputDirectory(), "Canceled active conversion.");
         }
     }
@@ -457,6 +531,7 @@ public class MainActivity extends Activity {
     }
 
     private void setBusy(boolean busy) {
+        this.busy = busy;
         convertButton.setEnabled(!busy);
         updateEngineButton.setEnabled(!busy);
         cancelButton.setEnabled(activeProcessId != null);
@@ -467,8 +542,7 @@ public class MainActivity extends Activity {
     }
 
     private File outputDirectory() {
-        return OutputTemplate.outputDirectory(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        return new File(getFilesDir(), "logs");
     }
 
     private void appendProgressLog(File outputDir, float progress, long etaInSeconds, String line) {
