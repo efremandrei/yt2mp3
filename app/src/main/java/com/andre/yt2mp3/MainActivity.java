@@ -29,6 +29,7 @@ import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -83,12 +84,28 @@ public class MainActivity extends Activity {
     private volatile boolean busy;
     private String verifiedEngineVersion;
     private TextView aboutEngineText;
+    private View splashBrand;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         AppUpdateChecker.checkDaily(this);
-        setContentView(R.layout.activity_main);
+        FrameLayout host = new FrameLayout(this);
+        getLayoutInflater().inflate(R.layout.activity_main, host, true);
+        getLayoutInflater().inflate(R.layout.splash_brand, host, true);
+        setContentView(host);
+        splashBrand = findViewById(R.id.splash_brand);
+        splashBrand.setOnApplyWindowInsetsListener((view, insets) -> {
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars()
+                        | android.view.WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            return insets;
+        });
+        splashBrand.requestApplyInsets();
 
         rootScroll = findViewById(R.id.root_scroll);
         rootScroll.setOnApplyWindowInsetsListener((view, insets) -> {
@@ -126,6 +143,15 @@ public class MainActivity extends Activity {
 
         statusText.setTextIsSelectable(true);
         applySavedSkin();
+        if (savedInstanceState == null) {
+            rootScroll.setVisibility(View.INVISIBLE);
+            getWindow().setStatusBarColor(Color.rgb(15, 17, 26));
+            getWindow().setNavigationBarColor(Color.rgb(15, 17, 26));
+            getWindow().getDecorView().setSystemUiVisibility(0);
+            if (Build.VERSION.SDK_INT >= 30 && getWindow().getInsetsController() != null)
+                getWindow().getInsetsController().setSystemBarsAppearance(0,
+                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+        } else splashBrand.setVisibility(View.GONE);
         filenameInput.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             public void onTextChanged(CharSequence s, int start, int before, int count) { updateOutputPreview(); }
@@ -401,6 +427,7 @@ public class MainActivity extends Activity {
                     if (isFinishing() || isDestroyed()) return;
                     verifiedEngineVersion = engineVersion;
                     if (aboutEngineText != null) aboutEngineText.setText(aboutEngineDetails());
+                    dismissBrandSplash();
                     setBusy(false);
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });
@@ -408,12 +435,20 @@ public class MainActivity extends Activity {
                 appendLog(outputDir, "Engine initialization failed: " + fullError(error));
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
+                    dismissBrandSplash();
                     setBusy(false);
                     setStatus("Engine initialization failed: " + fullError(error));
                     showConversionError(fullError(error));
                 });
             }
         });
+    }
+
+    private void dismissBrandSplash() {
+        if (splashBrand.getVisibility() == View.GONE) return;
+        rootScroll.setVisibility(View.VISIBLE);
+        splashBrand.setVisibility(View.GONE);
+        applySkin();
     }
 
     private void startConversion() {

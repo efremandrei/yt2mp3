@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The monochrome layer is supplied in mipmap-anydpi-v33 for Android 13+. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" tools:ignore="MonochromeLauncherIcon"><background android:drawable="@color/brand_background" /><foreground android:drawable="@drawable/brand_mark" /></adaptive-icon>

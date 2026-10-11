@@ -45,6 +45,10 @@ public class ConversionUiTest {
                 android.os.SystemClock.sleep(100);
             } while (android.os.SystemClock.elapsedRealtime() < deadline);
             assertTrue(status[0], status[0].startsWith("Ready."));
+            instrumentation.runOnMainSync(() -> {
+                assertEquals(android.view.View.GONE, activity.findViewById(R.id.splash_brand).getVisibility());
+                assertEquals(android.view.View.VISIBLE, activity.findViewById(R.id.root_scroll).getVisibility());
+            });
         } finally { instrumentation.runOnMainSync(activity::finish); }
     }
 

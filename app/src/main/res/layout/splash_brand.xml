@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/splash_brand" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/splash_background" android:clickable="true" android:focusable="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center" android:orientation="vertical" android:gravity="center" android:padding="28dp">
+        <ImageView android:layout_width="216dp" android:layout_height="216dp" android:src="@drawable/brand_mark" android:importantForAccessibility="no" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/app_name" android:textColor="#F4F0FF" android:textSize="44sp" android:fontFamily="sans-serif-black" android:letterSpacing="-0.04" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/splash_tagline" android:textColor="#B8ACCF" android:textSize="18sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="32dp" android:text="@string/splash_features" android:textColor="#68E8CD" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.18" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:orientation="vertical" android:gravity="center" android:padding="28dp">
+        <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="96dp" android:layout_height="3dp" android:indeterminate="true" android:indeterminateTint="#AD82FF" android:importantForAccessibility="no" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/splash_loading" android:textColor="#9A91AC" android:textSize="12sp" android:accessibilityLiveRegion="polite" />
+    </LinearLayout>
+</FrameLayout>
