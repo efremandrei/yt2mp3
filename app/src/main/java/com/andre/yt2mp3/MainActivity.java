@@ -199,6 +199,15 @@ public class MainActivity extends Activity {
         topBar.setBackgroundColor(skin.background);
         contentBody.setBackgroundColor(skin.background);
         titleText.setTextColor(skin.textPrimary);
+        findViewById(R.id.brand_banner).setBackgroundResource(skin.dark ? R.drawable.banner_dark : R.drawable.banner_light);
+        SpannableString wordmark = new SpannableString(getString(R.string.app_name));
+        wordmark.setSpan(new android.text.style.ForegroundColorSpan(skin.dark
+                ? Color.rgb(104, 232, 205) : Color.rgb(18, 119, 101)), 2, 3, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        wordmark.setSpan(new android.text.style.ForegroundColorSpan(skin.dark
+                ? Color.rgb(191, 162, 255) : skin.accent), 3, 6, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        titleText.setText(wordmark);
+        ((TextView)findViewById(R.id.banner_caption)).setTextColor(skin.dark
+                ? Color.rgb(179, 169, 202) : Color.rgb(100, 82, 127));
         tintLabels(contentBody);
         for (int id : new int[]{R.id.link_card, R.id.output_card, R.id.status_card}) {
             findViewById(id).setBackground(rounded(skin.surface, skin.border, 18));
