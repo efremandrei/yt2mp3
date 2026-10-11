@@ -81,6 +81,8 @@ public class MainActivity extends Activity {
     private volatile boolean initialized;
     private volatile boolean cancelRequested;
     private volatile boolean busy;
+    private String verifiedEngineVersion;
+    private TextView aboutEngineText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -279,21 +281,68 @@ public class MainActivity extends Activity {
     }
 
     private void showInfoDialog() {
-        String message = getString(R.string.info_message, appVersionName(), appVersionCode());
-        SpannableString linkedMessage = new SpannableString(message);
-        Linkify.addLinks(linkedMessage, Linkify.EMAIL_ADDRESSES | Linkify.WEB_URLS);
-
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = Math.round(24 * getResources().getDisplayMetrics().density);
+        content.setPadding(padding, 0, padding, padding / 2);
+        scroll.addView(content);
+        addInfoText(content, getString(R.string.info_description), false, false);
+        addInfoSection(content, R.string.info_release,
+                getString(R.string.info_version, appVersionName(), appVersionCode()), false);
+        addInfoSection(content, R.string.info_developer,
+                getString(R.string.info_developer_name), false);
+        addInfoText(content, getString(R.string.info_email), false, true);
+        addInfoSection(content, R.string.info_project,
+                getString(R.string.info_repository), true);
+        addInfoText(content, getString(R.string.info_audio_engine), true, false);
+        aboutEngineText = addInfoText(content, aboutEngineDetails(), false, false);
         AlertDialog dialog = themedDialog()
                 .setTitle(R.string.info_title)
-                .setMessage(linkedMessage)
-                .setNeutralButton("Check for updates", (dialogInterface, which) -> AppUpdateChecker.checkNow(this))
-                .setPositiveButton(android.R.string.ok, null)
+                .setView(scroll)
+                .setNeutralButton(R.string.info_check_updates, (dialogInterface, which) -> AppUpdateChecker.checkNow(this))
+                .setPositiveButton(R.string.info_close, null)
                 .show();
-        TextView messageView = dialog.findViewById(android.R.id.message);
-        if (messageView != null) {
-            messageView.setMovementMethod(LinkMovementMethod.getInstance());
-            messageView.setLinksClickable(true);
+        int linkColor = skin.dark ? Color.rgb(184, 160, 255) : skin.accent;
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(linkColor);
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(linkColor);
+        dialog.setOnDismissListener(ignored -> aboutEngineText = null);
+    }
+
+    private String aboutEngineDetails() {
+        String version = YoutubeDL.getInstance().versionName(getApplicationContext());
+        if (version == null || version.trim().isEmpty()) version = verifiedEngineVersion;
+        return getString(R.string.info_engine_details, version == null
+                ? getString(initialized ? R.string.info_engine_unknown : R.string.info_engine_preparing) : version);
+    }
+
+    private void addInfoSection(LinearLayout content, int heading, String value, boolean linked) {
+        addInfoText(content, getString(heading), true, false);
+        addInfoText(content, value, false, linked);
+    }
+
+    private TextView addInfoText(LinearLayout content, String value, boolean heading, boolean linked) {
+        TextView label = new TextView(this);
+        label.setTextSize(heading ? 12 : 16);
+        label.setTextColor(heading ? skin.textSecondary : skin.textPrimary);
+        label.setTypeface(Typeface.DEFAULT, heading ? Typeface.BOLD : Typeface.NORMAL);
+        label.setLineSpacing(3 * getResources().getDisplayMetrics().density, 1f);
+        int top = Math.round((heading ? 20 : 5) * getResources().getDisplayMetrics().density);
+        label.setPadding(0, top, 0, 0);
+        if (linked) {
+            SpannableString link = new SpannableString(value);
+            Linkify.addLinks(link, Linkify.EMAIL_ADDRESSES | Linkify.WEB_URLS);
+            label.setText(link);
+            label.setLinkTextColor(skin.dark ? Color.rgb(184, 160, 255) : skin.accent);
+            label.setMovementMethod(LinkMovementMethod.getInstance());
+            label.setLinksClickable(true);
+        } else {
+            label.setText(value);
+            label.setTextIsSelectable(!heading);
         }
+        content.addView(label, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return label;
     }
 
     private String appVersionName() {
@@ -350,6 +399,8 @@ public class MainActivity extends Activity {
                 initialized = true;
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
+                    verifiedEngineVersion = engineVersion;
+                    if (aboutEngineText != null) aboutEngineText.setText(aboutEngineDetails());
                     setBusy(false);
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });

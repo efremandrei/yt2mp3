@@ -25,8 +25,18 @@
     <string name="skin_dark_description">Dark skin</string>
     <string name="info">About</string>
     <string name="info_title">About yt2mp3</string>
-    <string name="info_message">Developer: Andrei Efremushkin
-Email: andrei.efr@gmail.com
-GitHub: https://github.com/efremandrei/yt2mp3
-Version: %1$s/%2$d</string>
+    <string name="info_description">Convert video links to MP3. Trim audio and arrange chunks into a new file.</string>
+    <string name="info_release">APP RELEASE</string>
+    <string name="info_version">Version %1$s · Build %2$d</string>
+    <string name="info_developer">DEVELOPER &amp; CONTACT</string>
+    <string name="info_developer_name">Andrei Efremuahkin</string>
+    <string name="info_email">andrei.efr@gmail.com</string>
+    <string name="info_project">SOURCE CODE</string>
+    <string name="info_repository">https://github.com/efremandrei/yt2mp3</string>
+    <string name="info_audio_engine">AUDIO ENGINE</string>
+    <string name="info_engine_details">yt-dlp %1$s\nFFmpeg · MP3 conversion and editing</string>
+    <string name="info_engine_preparing">(preparing)</string>
+    <string name="info_engine_unknown">(version unavailable)</string>
+    <string name="info_check_updates">Check for updates</string>
+    <string name="info_close">Close</string>
 </resources>
