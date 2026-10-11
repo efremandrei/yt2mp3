@@ -5,6 +5,7 @@
     <string name="cancel">Cancel</string>
     <string name="paste">Paste</string>
     <string name="clear">Clear</string>
+    <string name="editor_open">MP3 editor · Trim &amp; merge</string>
     <string name="clear_url">Clear the video link</string>
     <string name="hero_title">Your next MP3.</string>
     <string name="hero_subtitle">Bring a YouTube link. Make the audio yours.</string>

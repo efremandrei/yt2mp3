@@ -29,6 +29,7 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <activity android:name=".EditorActivity" android:exported="false" android:configChanges="orientation|screenSize" />
         <receiver
             android:name=".BootUpdateReceiver"
             android:enabled="true"

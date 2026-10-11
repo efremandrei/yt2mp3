@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     private EditText urlInput;
     private EditText filenameInput;
     private Button clearButton;
+    private Button editorButton;
     private Button infoButton;
     private Button lightSkinButton;
     private Button darkSkinButton;
@@ -107,6 +108,8 @@ public class MainActivity extends Activity {
         urlInput = findViewById(R.id.url_input);
         filenameInput = findViewById(R.id.filename_input);
         clearButton = findViewById(R.id.clear_button);
+        editorButton = findViewById(R.id.editor_button);
+        editorButton.setOnClickListener(view -> startActivity(new Intent(this, EditorActivity.class)));
         infoButton = findViewById(R.id.info_button);
         lightSkinButton = findViewById(R.id.light_skin_button);
         darkSkinButton = findViewById(R.id.dark_skin_button);
@@ -185,6 +188,7 @@ public class MainActivity extends Activity {
         styleTopBarButton(infoButton, false);
         styleSecondaryButton(pasteButton);
         styleSecondaryButton(clearButton);
+        styleSecondaryButton(editorButton);
         styleSecondaryButton(openDownloadsButton);
         styleSecondaryButton(cancelButton);
         cancelButton.setTextColor(skin.danger);
@@ -606,6 +610,7 @@ public class MainActivity extends Activity {
         this.busy = busy;
         convertButton.setEnabled(!busy);
         updateEngineButton.setEnabled(!busy);
+        editorButton.setEnabled(!busy);
         cancelButton.setEnabled(activeProcessId != null);
         cancelButton.setVisibility(activeProcessId != null ? View.VISIBLE : View.GONE);
         progressBar.setVisibility(busy || progressBar.getProgress() > 0 ? View.VISIBLE : View.GONE);
@@ -615,7 +620,7 @@ public class MainActivity extends Activity {
         filenameInput.setEnabled(editable);
         pasteButton.setEnabled(editable);
         clearButton.setEnabled(editable);
-        for (Button button : new Button[]{convertButton, updateEngineButton, pasteButton, clearButton}) {
+        for (Button button : new Button[]{convertButton, updateEngineButton, pasteButton, clearButton, editorButton}) {
             button.setAlpha(button.isEnabled() ? 1f : 0.45f);
         }
     }

@@ -1,0 +1,5 @@
+<resources>
+ <item name="editor_from" type="id" /><item name="editor_to" type="id" />
+ <item name="editor_chunk_name" type="id" /><item name="editor_output_name" type="id" />
+ <item name="editor_add" type="id" /><item name="editor_export" type="id" /><item name="editor_summary" type="id" />
+</resources>

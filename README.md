@@ -13,6 +13,9 @@ right to save.
 
 ## Features
 
+- Basic MP3 editor: choose an audio file, preview it, and add named from/to ranges.
+- Select, edit, remove, and reorder chunks; save one chunk or merge checked chunks into a named new MP3.
+- Editor exports preserve the source file and re-encode audio for precise cuts. Use seconds, `mm:ss`, or `hh:mm:ss` with optional decimal fractions.
 - Redesigned dark/light interface with separate link, output name, and status cards.
 - Clear the URL field with one tap, while keeping your chosen output name.
 - Choose an MP3 filename or leave it blank to use the video title; duplicate names do not overwrite existing files.
