@@ -15,7 +15,7 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 final class EngineRuntime {
     private EngineRuntime() { }
 
-    static String initialize(Context context) throws Exception {
+    static synchronized String initialize(Context context) throws Exception {
         File packages = new File(context.getNoBackupFilesDir(), "youtubedl-android/packages");
         File binaries = new File(context.getApplicationInfo().nativeLibraryDir);
         RuntimeArchive.ensureExtracted(new File(binaries, "libpython.zip.so"), new File(packages, "python"));

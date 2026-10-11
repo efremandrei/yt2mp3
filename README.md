@@ -13,6 +13,9 @@ right to save.
 
 ## Features
 
+- Redesigned dark/light interface with separate link, output name, and status cards.
+- Clear the URL field with one tap, while keeping your chosen output name.
+- Choose an MP3 filename or leave it blank to use the video title; duplicate names do not overwrite existing files.
 - Paste or share a YouTube URL into the app.
 - Save MP3 files into `Download/yt2mp3`.
 - Show progress and ETA while `yt-dlp` runs.

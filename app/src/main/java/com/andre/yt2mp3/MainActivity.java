@@ -18,6 +18,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.SpannableString;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.ViewGroup;
 import android.text.method.LinkMovementMethod;
 import android.text.util.Linkify;
 import android.view.View;
@@ -59,6 +62,8 @@ public class MainActivity extends Activity {
     private TextView titleText;
     private TextView outputLabel;
     private EditText urlInput;
+    private EditText filenameInput;
+    private Button clearButton;
     private Button infoButton;
     private Button lightSkinButton;
     private Button darkSkinButton;
@@ -83,11 +88,25 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         rootScroll = findViewById(R.id.root_scroll);
+        rootScroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets bars = insets.getInsets(
+                        android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else {
+                view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                        insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            }
+            return insets;
+        });
+        rootScroll.requestApplyInsets();
         topBar = findViewById(R.id.top_bar);
         contentBody = findViewById(R.id.content_body);
         titleText = findViewById(R.id.title_text);
         outputLabel = findViewById(R.id.output_label);
         urlInput = findViewById(R.id.url_input);
+        filenameInput = findViewById(R.id.filename_input);
+        clearButton = findViewById(R.id.clear_button);
         infoButton = findViewById(R.id.info_button);
         lightSkinButton = findViewById(R.id.light_skin_button);
         darkSkinButton = findViewById(R.id.dark_skin_button);
@@ -102,11 +121,22 @@ public class MainActivity extends Activity {
 
         statusText.setTextIsSelectable(true);
         applySavedSkin();
+        filenameInput.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            public void onTextChanged(CharSequence s, int start, int before, int count) { updateOutputPreview(); }
+            public void afterTextChanged(Editable text) { }
+        });
+        updateOutputPreview();
 
         infoButton.setOnClickListener(view -> showInfoDialog());
         lightSkinButton.setOnClickListener(view -> setSkin(SKIN_BRIGHT));
         darkSkinButton.setOnClickListener(view -> setSkin(SKIN_DARK));
         pasteButton.setOnClickListener(view -> pasteFromClipboard());
+        clearButton.setOnClickListener(view -> {
+            urlInput.setText("");
+            urlInput.setError(null);
+            urlInput.requestFocus();
+        });
         openDownloadsButton.setOnClickListener(view -> openDownloads());
         convertButton.setOnClickListener(view -> startConversion());
         cancelButton.setOnClickListener(view -> cancelActiveConversion());
@@ -134,20 +164,27 @@ public class MainActivity extends Activity {
     }
 
     private void applySkin() {
-        rootScroll.setBackgroundColor(Color.BLACK);
-        topBar.setBackgroundColor(Color.BLACK);
+        rootScroll.setBackgroundColor(skin.background);
+        topBar.setBackgroundColor(skin.background);
         contentBody.setBackgroundColor(skin.background);
-        titleText.setTextColor(Color.WHITE);
+        titleText.setTextColor(skin.textPrimary);
+        tintLabels(contentBody);
+        for (int id : new int[]{R.id.link_card, R.id.output_card, R.id.status_card}) {
+            findViewById(id).setBackground(rounded(skin.surface, skin.border, 18));
+        }
         outputLabel.setTextColor(skin.textSecondary);
         statusText.setTextColor(skin.textPrimary);
         footerText.setTextColor(skin.textSecondary);
 
-        urlInput.setTextColor(Color.rgb(23, 26, 31));
-        urlInput.setHintTextColor(Color.rgb(86, 94, 108));
-        urlInput.setBackground(rounded(Color.WHITE, Color.rgb(216, 222, 232), 8));
+        for (EditText input : new EditText[]{urlInput, filenameInput}) {
+            input.setTextColor(skin.textPrimary);
+            input.setHintTextColor(skin.textSecondary);
+            input.setBackground(rounded(skin.background, skin.border, 12));
+        }
 
         styleTopBarButton(infoButton, false);
         styleSecondaryButton(pasteButton);
+        styleSecondaryButton(clearButton);
         styleSecondaryButton(openDownloadsButton);
         styleSecondaryButton(cancelButton);
         cancelButton.setTextColor(skin.danger);
@@ -160,21 +197,42 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             progressBar.setProgressTintList(ColorStateList.valueOf(skin.accent));
             progressBar.setProgressBackgroundTintList(ColorStateList.valueOf(skin.border));
+            progressBar.setIndeterminateTintList(ColorStateList.valueOf(skin.accent));
         }
 
         Window window = getWindow();
-        window.setStatusBarColor(Color.BLACK);
+        window.setStatusBarColor(skin.background);
         window.setNavigationBarColor(skin.background);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.setStatusBarContrastEnforced(false);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && window.getInsetsController() != null) {
             window.getInsetsController().setSystemBarsAppearance(
-                    0,
-                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+                    skin.dark ? 0 : WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.getDecorView().setSystemUiVisibility(0);
+            window.getDecorView().setSystemUiVisibility(skin.dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
+    }
+
+    private void tintLabels(View view) {
+        if (view instanceof TextView && view.getTag() != null) {
+            ((TextView) view).setTextColor("heading".equals(view.getTag()) ? skin.textPrimary : skin.textSecondary);
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) tintLabels(group.getChildAt(i));
+        }
+    }
+
+    private void updateOutputPreview() {
+        try {
+            String name = OutputName.custom(filenameInput.getText().toString());
+            outputLabel.setText("Download / yt2mp3 /\n" + (name.isEmpty() ? "Video title [video ID].mp3" : name));
+            filenameInput.setError(null);
+        } catch (IllegalArgumentException error) {
+            outputLabel.setText("Download / yt2mp3");
         }
     }
 
@@ -201,18 +259,18 @@ public class MainActivity extends Activity {
     }
 
     private void styleTopBarButton(Button button, boolean selected) {
-        button.setBackground(rounded(selected ? skin.accent : Color.BLACK,
-                selected ? skin.accentPressed : Color.rgb(104, 112, 122), 8));
-        button.setTextColor(Color.WHITE);
+        button.setBackground(rounded(selected ? skin.accent : skin.surface,
+                selected ? skin.accentPressed : skin.border, 12));
+        button.setTextColor(selected ? Color.WHITE : skin.textPrimary);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
-    private static GradientDrawable rounded(int fill, int stroke, int radiusDp) {
+    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setShape(GradientDrawable.RECTANGLE);
         drawable.setColor(fill);
-        drawable.setStroke(2, stroke);
-        drawable.setCornerRadius(radiusDp * 3f);
+        drawable.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density)), stroke);
+        drawable.setCornerRadius(radiusDp * getResources().getDisplayMetrics().density);
         return drawable;
     }
 
@@ -221,7 +279,7 @@ public class MainActivity extends Activity {
         SpannableString linkedMessage = new SpannableString(message);
         Linkify.addLinks(linkedMessage, Linkify.EMAIL_ADDRESSES | Linkify.WEB_URLS);
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = themedDialog()
                 .setTitle(R.string.info_title)
                 .setMessage(linkedMessage)
                 .setNeutralButton("Check for updates", (dialogInterface, which) -> AppUpdateChecker.checkNow(this))
@@ -241,6 +299,12 @@ public class MainActivity extends Activity {
         } catch (PackageManager.NameNotFoundException error) {
             return "unknown";
         }
+    }
+
+    private AlertDialog.Builder themedDialog() {
+        return new AlertDialog.Builder(this, skin.dark
+                ? android.R.style.Theme_Material_Dialog_Alert
+                : android.R.style.Theme_Material_Light_Dialog_Alert);
     }
 
     private long appVersionCode() {
@@ -281,12 +345,14 @@ public class MainActivity extends Activity {
                 appendLog(outputDir, "Converter engine ready. Runtime verified: yt-dlp " + engineVersion);
                 initialized = true;
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
                     setBusy(false);
                     setStatus("Ready. MP3 files save to Download/yt2mp3.");
                 });
             } catch (Exception error) {
                 appendLog(outputDir, "Engine initialization failed: " + fullError(error));
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
                     setBusy(false);
                     setStatus("Engine initialization failed: " + fullError(error));
                     showConversionError(fullError(error));
@@ -296,6 +362,14 @@ public class MainActivity extends Activity {
     }
 
     private void startConversion() {
+        final String customName;
+        try {
+            customName = OutputName.custom(filenameInput.getText().toString());
+        } catch (IllegalArgumentException error) {
+            filenameInput.setError(error.getMessage());
+            filenameInput.requestFocus();
+            return;
+        }
         String url = urlInput.getText().toString().trim();
         if (!YoutubeUrl.isSupported(url)) {
             appendLog(outputDirectory(), "Rejected unsupported URL.");
@@ -368,7 +442,7 @@ public class MainActivity extends Activity {
                     cancelButton.setEnabled(false);
                     setStatus("Saving MP3...");
                 });
-                String savedPath = Mp3Publisher.publish(getApplicationContext(), completed);
+                String savedPath = Mp3Publisher.publish(getApplicationContext(), completed, customName);
                 appendLog(outputDir, "Conversion done. Saved " + savedPath);
                 runOnUiThread(() -> {
                     activeProcessId = null;
@@ -384,7 +458,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     activeProcessId = null;
                     setBusy(false);
-                    setStatus(canceled ? "Canceled." : "Conversion failed: " + details);
+                    setStatus(canceled ? "Canceled." : "Conversion failed: " + compactError(error));
                     if (!canceled && !isFinishing() && !isDestroyed()) showConversionError(details);
                 });
             } finally {
@@ -408,7 +482,7 @@ public class MainActivity extends Activity {
     }
 
     private void showConversionError(String details) {
-        new AlertDialog.Builder(this).setTitle("Conversion failed")
+        themedDialog().setTitle("Conversion failed")
                 .setMessage(details)
                 .setNeutralButton("Copy error", (dialog, which) -> {
                     ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
@@ -474,6 +548,7 @@ public class MainActivity extends Activity {
     private void showProgress(float progress, long etaInSeconds, String line) {
         int roundedProgress = Math.max(0, Math.min(100, Math.round(progress)));
         progressBar.setProgress(roundedProgress);
+        progressBar.setIndeterminate(false);
         if (progress > 0f) {
             String eta = etaInSeconds > 0 ? " ETA " + etaInSeconds + "s" : "";
             setStatus(String.format(Locale.US, "%.1f%%%s", progress, eta));
@@ -532,6 +607,17 @@ public class MainActivity extends Activity {
         convertButton.setEnabled(!busy);
         updateEngineButton.setEnabled(!busy);
         cancelButton.setEnabled(activeProcessId != null);
+        cancelButton.setVisibility(activeProcessId != null ? View.VISIBLE : View.GONE);
+        progressBar.setVisibility(busy || progressBar.getProgress() > 0 ? View.VISIBLE : View.GONE);
+        progressBar.setIndeterminate(busy);
+        boolean editable = activeProcessId == null;
+        urlInput.setEnabled(editable);
+        filenameInput.setEnabled(editable);
+        pasteButton.setEnabled(editable);
+        clearButton.setEnabled(editable);
+        for (Button button : new Button[]{convertButton, updateEngineButton, pasteButton, clearButton}) {
+            button.setAlpha(button.isEnabled() ? 1f : 0.45f);
+        }
     }
 
     private void setStatus(String message) {
@@ -625,8 +711,8 @@ public class MainActivity extends Activity {
                     Color.WHITE,
                     Color.rgb(23, 26, 31),
                     Color.rgb(86, 94, 108),
-                    Color.rgb(14, 124, 102),
-                    Color.rgb(10, 94, 77),
+                    Color.rgb(104, 65, 203),
+                    Color.rgb(80, 45, 166),
                     Color.rgb(180, 35, 24),
                     Color.rgb(216, 222, 232));
         }
@@ -634,14 +720,14 @@ public class MainActivity extends Activity {
         static SkinPalette dark() {
             return new SkinPalette(
                     true,
-                    Color.rgb(12, 18, 22),
-                    Color.rgb(25, 34, 39),
+                    Color.rgb(15, 17, 26),
+                    Color.rgb(25, 28, 41),
                     Color.rgb(239, 246, 243),
                     Color.rgb(164, 178, 177),
-                    Color.rgb(34, 199, 169),
-                    Color.rgb(24, 161, 138),
+                    Color.rgb(112, 73, 216),
+                    Color.rgb(87, 51, 180),
                     Color.rgb(255, 138, 128),
-                    Color.rgb(64, 78, 84));
+                    Color.rgb(49, 54, 73));
         }
     }
 }
