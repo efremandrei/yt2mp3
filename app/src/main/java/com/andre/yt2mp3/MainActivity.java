@@ -28,6 +28,7 @@ import android.view.Window;
 import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -52,6 +53,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_NAME = "yt2mp3_prefs";
     private static final String PREF_SKIN = "skin";
     private static final String PREF_ENGINE_CHECK = "engine_check";
+    private static final String PREF_NON_YOUTUBE = "non_youtube_support";
     private static final long ENGINE_CHECK_INTERVAL = 24L * 60 * 60 * 1000;
     private static final String SKIN_BRIGHT = "bright";
     private static final String SKIN_DARK = "dark";
@@ -63,6 +65,7 @@ public class MainActivity extends Activity {
     private TextView titleText;
     private TextView outputLabel;
     private EditText urlInput;
+    private CheckBox nonYoutubeCheckbox;
     private EditText filenameInput;
     private Button clearButton;
     private Button editorButton;
@@ -125,6 +128,12 @@ public class MainActivity extends Activity {
         titleText = findViewById(R.id.title_text);
         outputLabel = findViewById(R.id.output_label);
         urlInput = findViewById(R.id.url_input);
+        nonYoutubeCheckbox = findViewById(R.id.non_youtube_checkbox);
+        nonYoutubeCheckbox.setChecked(getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_NON_YOUTUBE, false));
+        nonYoutubeCheckbox.setOnCheckedChangeListener((button, checked) ->
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putBoolean(PREF_NON_YOUTUBE, checked).apply());
         filenameInput = findViewById(R.id.filename_input);
         clearButton = findViewById(R.id.clear_button);
         editorButton = findViewById(R.id.editor_button);
@@ -215,6 +224,8 @@ public class MainActivity extends Activity {
         outputLabel.setTextColor(skin.textSecondary);
         statusText.setTextColor(skin.textPrimary);
         footerText.setTextColor(skin.textSecondary);
+        nonYoutubeCheckbox.setTextColor(skin.textPrimary);
+        nonYoutubeCheckbox.setButtonTintList(ColorStateList.valueOf(skin.accent));
 
         for (EditText input : new EditText[]{urlInput, filenameInput}) {
             input.setTextColor(skin.textPrimary);
@@ -470,9 +481,13 @@ public class MainActivity extends Activity {
             return;
         }
         String url = urlInput.getText().toString().trim();
-        if (!YoutubeUrl.isSupported(url)) {
+        boolean validUrl = nonYoutubeCheckbox.isChecked()
+                ? YoutubeUrl.isHttpUrl(url) : YoutubeUrl.isSupported(url);
+        if (!validUrl) {
             appendLog(outputDirectory(), "Rejected unsupported URL.");
-            setStatus("Enter a valid youtube.com or youtu.be URL.");
+            setStatus(nonYoutubeCheckbox.isChecked()
+                    ? "Enter a valid HTTP or HTTPS media URL."
+                    : "Enter a valid youtube.com or youtu.be URL.");
             return;
         }
         if (!initialized) {

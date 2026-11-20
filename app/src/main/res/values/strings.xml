@@ -11,6 +11,7 @@
     <string name="hero_subtitle">Bring a YouTube link. Make the audio yours.</string>
     <string name="link_title">01  Video link</string>
     <string name="url_hint">Paste a YouTube URL</string>
+    <string name="non_youtube_support">Enable non-YouTube links</string>
     <string name="output_title">02  Save as</string>
     <string name="filename_hint">Use the video title</string>
     <string name="filename_help">Optional name · .mp3 is added automatically</string>

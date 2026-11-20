@@ -9,6 +9,10 @@ final class YoutubeUrl {
     }
 
     static boolean isSupported(String value) {
+        return isHttpUrl(value) && isYoutubeHost(value);
+    }
+
+    static boolean isHttpUrl(String value) {
         if (value == null) {
             return false;
         }
@@ -27,7 +31,15 @@ final class YoutubeUrl {
             if (!normalizedScheme.equals("http") && !normalizedScheme.equals("https")) {
                 return false;
             }
-            String normalizedHost = host.toLowerCase(Locale.US);
+            return true;
+        } catch (URISyntaxException error) {
+            return false;
+        }
+    }
+
+    private static boolean isYoutubeHost(String value) {
+        try {
+            String normalizedHost = new URI(value.trim()).getHost().toLowerCase(Locale.US);
             return normalizedHost.equals("youtu.be")
                     || normalizedHost.equals("youtube.com")
                     || normalizedHost.endsWith(".youtube.com");

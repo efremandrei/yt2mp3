@@ -20,6 +20,7 @@ right to save.
 - Clear the URL field with one tap, while keeping your chosen output name.
 - Choose an MP3 filename or leave it blank to use the video title; duplicate names do not overwrite existing files.
 - Paste or share a YouTube URL into the app.
+- Optionally enable non-YouTube links supported by yt-dlp; the setting is remembered.
 - Save MP3 files into `Download/yt2mp3`.
 - Show progress and ETA while `yt-dlp` runs.
 - Refresh the downloader engine before conversion once per day.
